@@ -23,9 +23,9 @@ jobs:
         run: dotnet build PhotoFinder/PhotoFinder.csproj -c Release --no-restore
 
       - name: Publish single-file self-contained exe (win-x64)
-        run: |
-          dotnet publish PhotoFinder/PhotoFinder.csproj -c Release -r win-x64 /p:PublishSingleFile=true /p:PublishTrimmed=true /p:SelfContained=true -o ${{ github.workspace }}\artifacts
-
+    run: |
+      dotnet publish PhotoFinder/PhotoFinder.csproj -c Release -r win-x64 /p:PublishSingleFile=true /p:PublishTrimmed=false /p:SelfContained=true -o ${{ github.workspace }}\artifacts
+      
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
