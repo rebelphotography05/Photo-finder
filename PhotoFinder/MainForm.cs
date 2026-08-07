@@ -123,7 +123,7 @@ namespace PhotoFinder
             main.RowStyles.Add(new RowStyle(SizeType.Absolute, 72)); // bottom actions
 
             // Folder
-            var lblFolder = new Label() { Text = "Select or drag the Folder", Anchor = AnchorStyles.Left | AnchorStyles.Top };
+            var lblFolder = new Label() { Text = "Select or drag the folder", Anchor = AnchorStyles.Left | AnchorStyles.Top };
             txtFolder = new TextBox() { Anchor = AnchorStyles.Left | AnchorStyles.Right };
             btnBrowseFolder = new Button() { Text = "Browse", AutoSize = true };
             btnBrowseFolder.Click += BtnBrowseFolder_Click;
@@ -136,7 +136,7 @@ namespace PhotoFinder
             main.Controls.Add(btnBrowseFolder, 2, 1);
 
             // Text file
-            var lblList = new Label() { Text = "Select or drag the Text file", Anchor = AnchorStyles.Left };
+            var lblList = new Label() { Text = "Select or drag the text file", Anchor = AnchorStyles.Left };
             txtListFile = new TextBox() { Anchor = AnchorStyles.Left | AnchorStyles.Right };
             btnBrowseList = new Button() { Text = "Browse", AutoSize = true };
             btnBrowseList.Click += BtnBrowseList_Click;
@@ -255,7 +255,7 @@ namespace PhotoFinder
             main.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
 
             // Low-res
-            var lblLow = new Label() { Text = "Select or drag the Low Res Photos Folder", Anchor = AnchorStyles.Left };
+            var lblLow = new Label() { Text = "Select or drag the low res photos folder", Anchor = AnchorStyles.Left };
             txtLowResFolder = new TextBox() { Anchor = AnchorStyles.Left | AnchorStyles.Right };
             btnBrowseLowRes = new Button() { Text = "Browse", AutoSize = true };
             btnBrowseLowRes.Click += BtnBrowseLowRes_Click;
@@ -267,7 +267,7 @@ namespace PhotoFinder
             main.Controls.Add(btnBrowseLowRes, 2, 1);
 
             // Hi-res
-            var lblHi = new Label() { Text = "Select or drag the High Res Photos Folder", Anchor = AnchorStyles.Left };
+            var lblHi = new Label() { Text = "Select or drag the high res photos folder", Anchor = AnchorStyles.Left };
             txtHiResFolder = new TextBox() { Anchor = AnchorStyles.Left | AnchorStyles.Right };
             btnBrowseHiRes = new Button() { Text = "Browse", AutoSize = true };
             btnBrowseHiRes.Click += BtnBrowseHiRes_Click;
@@ -279,7 +279,7 @@ namespace PhotoFinder
             main.Controls.Add(btnBrowseHiRes, 2, 3);
 
             // Output folder label
-            var lblOut = new Label() { Text = "Choose the Output Folder", Anchor = AnchorStyles.Left };
+            var lblOut = new Label() { Text = "Choose the output folder", Anchor = AnchorStyles.Left };
             main.Controls.Add(lblOut, 0, 4);
             main.SetColumnSpan(lblOut, 3);
 
