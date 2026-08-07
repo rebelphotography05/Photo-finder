@@ -12,24 +12,25 @@ namespace PhotoFinder
 {
     public class MainForm : Form
     {
-        // Common controls (Find tab)
+        // Find tab controls
         private TextBox txtFolder;
         private Button btnBrowseFolder;
         private TextBox txtListFile;
         private Button btnBrowseList;
         private Button btnFind;
         private ListBox lstResults;
+        private PictureBox picPreview;
         private Button btnOpenSelected;
         private Button btnCopyAll;
         private Label lblStatus;
-        private CheckBox chkIncludeSubfolders;
-        private CheckBox chkSearchAnywhere;
-        private CheckBox chkPartialNumericOnly;
         private ProgressBar progressScanning;
         private ProgressBar progressCopying;
         private TextBox txtOutputFolder;
         private Button btnBrowseOutput;
-        private TabControl mainTabs;
+        private RadioButton rbCandid;
+        private RadioButton rbTraditional;
+        private RadioButton rbOther;
+        private TextBox txtOtherName;
 
         // Compare tab controls
         private TextBox txtLowResFolder;
@@ -38,25 +39,33 @@ namespace PhotoFinder
         private Button btnBrowseHiRes;
         private Button btnCompare;
         private ListBox lstCompareResults;
-        private Label lblCompareStatus;
+        private ProgressBar progressCompare;
+        private Button btnCopyCompareSelected;
+        private PictureBox picCompareLow;
+        private PictureBox picCompareHi;
+        private TextBox txtCompareOutputFolder;
+        private Button btnBrowseCompareOutput;
+        private RadioButton rbCompCandid;
+        private RadioButton rbCompTraditional;
+        private RadioButton rbCompOther;
+        private TextBox txtCompOtherName;
+
+        // Theme toggle
+        private Button btnThemeToggle;
+        private bool darkTheme = false;
 
         public MainForm()
         {
-            // Window title as requested
             Text = "Rebel Photo Finder";
-
-            // Size & modern-ish defaults
-            Width = 980;
+            // Make a bit less wide so buttons remain visible
+            Width = 900;
             Height = 640;
+            MinimumSize = new Size(820, 520);
             StartPosition = FormStartPosition.CenterScreen;
-            Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point);
-            BackColor = Color.FromArgb(250, 250, 250);
+            Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point);
 
-            // Make window resizable for new layout
-            FormBorderStyle = FormBorderStyle.Sizable;
             InitializeComponents();
 
-            // Allow drag & drop at the form-level for convenience
             AllowDrop = true;
             DragEnter += MainForm_DragEnter;
             DragDrop += MainForm_DragDrop;
@@ -64,54 +73,57 @@ namespace PhotoFinder
 
         private void InitializeComponents()
         {
-            // Main tab control
-            mainTabs = new TabControl()
-            {
-                Dock = DockStyle.Fill,
-                Appearance = TabAppearance.Normal,
-                Padding = new Point(12, 6)
-            };
+            var mainTabs = new TabControl() { Dock = DockStyle.Fill };
 
-            // Find Tab
             var tabFind = new TabPage("Find (from text)");
-            tabFind.Padding = new Padding(12);
-            tabFind.BackColor = Color.White;
+            tabFind.Padding = new Padding(8);
             tabFind.Controls.Add(BuildFindPanel());
-            mainTabs.TabPages.Add(tabFind);
 
-            // Compare Tab
             var tabCompare = new TabPage("Compare Photos");
-            tabCompare.Padding = new Padding(12);
-            tabCompare.BackColor = Color.White;
+            tabCompare.Padding = new Padding(8);
             tabCompare.Controls.Add(BuildComparePanel());
+
+            mainTabs.TabPages.Add(tabFind);
             mainTabs.TabPages.Add(tabCompare);
 
-            Controls.Add(mainTabs);
+            // Theme toggle button top-right
+            btnThemeToggle = new Button() { Text = "Dark Theme", AutoSize = true, Anchor = AnchorStyles.Top | AnchorStyles.Right };
+            btnThemeToggle.Click += BtnThemeToggle_Click;
+
+            var topPanel = new TableLayoutPanel() { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1, Height = 36 };
+            topPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+            topPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            topPanel.Controls.Add(new Label() { Text = "", AutoSize = true }, 0, 0);
+            topPanel.Controls.Add(btnThemeToggle, 1, 0);
+
+            var outer = new TableLayoutPanel() { Dock = DockStyle.Fill, RowCount = 2 };
+            outer.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
+            outer.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            outer.Controls.Add(topPanel, 0, 0);
+            outer.Controls.Add(mainTabs, 0, 1);
+
+            Controls.Add(outer);
         }
 
         private Control BuildFindPanel()
         {
-            var main = new TableLayoutPanel()
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 3,
-                RowCount = 10,
-                BackColor = Color.White,
-                Padding = new Padding(8),
-                AutoSize = true
-            };
-
+            var main = new TableLayoutPanel() { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 8, Padding = new Padding(6) };
             main.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
             main.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
             main.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15));
 
-            // Rows heights (mix of fixed and flexible)
-            for (int i = 0; i < 8; i++) main.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
-            main.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // results
-            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 60)); // bottom action bar
+            // rows
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 30)); // label
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 34)); // folder
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 34)); // list
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 36)); // output label
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 36)); // output controls
+            main.RowStyles.Add(new RowStyle(SizeType.Percent, 100)); // results + preview
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 72)); // bottom actions
 
-            // Folder row
-            var lblFolder = new Label() { Text = "Folder to search:", AutoSize = true, Anchor = AnchorStyles.Left };
+            // Folder
+            var lblFolder = new Label() { Text = "Folder to search:", Anchor = AnchorStyles.Left | AnchorStyles.Top };
             txtFolder = new TextBox() { Anchor = AnchorStyles.Left | AnchorStyles.Right };
             btnBrowseFolder = new Button() { Text = "Browse", AutoSize = true };
             btnBrowseFolder.Click += BtnBrowseFolder_Click;
@@ -123,198 +135,252 @@ namespace PhotoFinder
             main.SetColumnSpan(txtFolder, 2);
             main.Controls.Add(btnBrowseFolder, 2, 1);
 
-            // List file row
-            var lblList = new Label() { Text = "Text file with names (comma, newline or semicolon):", AutoSize = true, Anchor = AnchorStyles.Left };
+            // List file
+            var lblList = new Label() { Text = "Text file with names (comma, newline or semicolon):", Anchor = AnchorStyles.Left };
             txtListFile = new TextBox() { Anchor = AnchorStyles.Left | AnchorStyles.Right };
             btnBrowseList = new Button() { Text = "Browse", AutoSize = true };
             btnBrowseList.Click += BtnBrowseList_Click;
 
             main.Controls.Add(lblList, 0, 2);
             main.SetColumnSpan(lblList, 3);
-
             main.Controls.Add(txtListFile, 0, 3);
             main.SetColumnSpan(txtListFile, 2);
             main.Controls.Add(btnBrowseList, 2, 3);
 
-            // Options row (subfolders / anywhere / partial numeric)
-            var optsPanel = new FlowLayoutPanel() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, AutoSize = true };
-            chkIncludeSubfolders = new CheckBox() { Text = "Include subfolders", Checked = true, AutoSize = true };
-            chkSearchAnywhere = new CheckBox() { Text = "Search anywhere in filename", Checked = true, AutoSize = true };
-            chkPartialNumericOnly = new CheckBox() { Text = "Partial match (numbers only)", Checked = true, AutoSize = true };
+            // Output label
+            var lblOut = new Label() { Text = "Choose the Output folder:", Anchor = AnchorStyles.Left };
+            main.Controls.Add(lblOut, 0, 4);
+            main.SetColumnSpan(lblOut, 3);
 
-            optsPanel.Controls.Add(chkIncludeSubfolders);
-            optsPanel.Controls.Add(chkSearchAnywhere);
-            optsPanel.Controls.Add(chkPartialNumericOnly);
-
-            main.Controls.Add(optsPanel, 0, 4);
-            main.SetColumnSpan(optsPanel, 3);
-
-            // Output folder selection
-            var lblOut = new Label() { Text = "Output folder for matches:", AutoSize = true, Anchor = AnchorStyles.Left };
+            // Output controls
             txtOutputFolder = new TextBox() { Anchor = AnchorStyles.Left | AnchorStyles.Right };
             btnBrowseOutput = new Button() { Text = "Browse", AutoSize = true };
             btnBrowseOutput.Click += BtnBrowseOutput_Click;
 
-            main.Controls.Add(lblOut, 0, 5);
-            main.SetColumnSpan(lblOut, 3);
-
-            main.Controls.Add(txtOutputFolder, 0, 6);
+            main.Controls.Add(txtOutputFolder, 0, 5);
             main.SetColumnSpan(txtOutputFolder, 2);
-            main.Controls.Add(btnBrowseOutput, 2, 6);
+            main.Controls.Add(btnBrowseOutput, 2, 5);
 
-            // Find button and scanning progress
-            btnFind = new Button() { Text = "Find Photos", AutoSize = true, Width = 140 };
+            // Radio buttons for subfolder choice
+            var radioPanel = new FlowLayoutPanel() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, AutoSize = true };
+            rbCandid = new RadioButton() { Text = "Candid", AutoSize = true };
+            rbTraditional = new RadioButton() { Text = "Traditional", AutoSize = true };
+            rbOther = new RadioButton() { Text = "Other", AutoSize = true };
+            txtOtherName = new TextBox() { Width = 140, Enabled = false };
+            rbOther.CheckedChanged += (s, e) => txtOtherName.Enabled = rbOther.Checked;
+            // default selection
+            rbCandid.Checked = true;
+            radioPanel.Controls.Add(rbCandid);
+            radioPanel.Controls.Add(rbTraditional);
+            radioPanel.Controls.Add(rbOther);
+            radioPanel.Controls.Add(txtOtherName);
+
+            main.Controls.Add(radioPanel, 0, 6);
+            main.SetColumnSpan(radioPanel, 3);
+
+            // Results and preview panel
+            var resultsPanel = new TableLayoutPanel() { Dock = DockStyle.Fill, ColumnCount = 2 };
+            resultsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
+            resultsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+
+            lstResults = new ListBox() { Dock = DockStyle.Fill };
+            lstResults.SelectedIndexChanged += LstResults_SelectedIndexChanged;
+
+            picPreview = new PictureBox() { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BorderStyle = BorderStyle.FixedSingle };
+
+            resultsPanel.Controls.Add(lstResults, 0, 0);
+            resultsPanel.Controls.Add(picPreview, 1, 0);
+
+            main.Controls.Add(resultsPanel, 0, 6);
+            main.SetColumnSpan(resultsPanel, 3);
+
+            // Bottom actions
+            progressScanning = new ProgressBar() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Height = 18 };
+            btnFind = new Button() { Text = "Find Photos", AutoSize = true };
             btnFind.Click += BtnFind_Click;
 
-            progressScanning = new ProgressBar() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Minimum = 0, Maximum = 100, Height = 18 };
-
-            main.Controls.Add(progressScanning, 0, 7);
-            main.SetColumnSpan(progressScanning, 2);
-            main.Controls.Add(btnFind, 2, 7);
-
-            // Results list
-            lstResults = new ListBox() { Dock = DockStyle.Fill };
-            main.Controls.Add(lstResults, 0, 8);
-            main.SetColumnSpan(lstResults, 3);
-
-            // Bottom action bar: status, copy progress, buttons
-            var bottomPanel = new TableLayoutPanel() { Dock = DockStyle.Fill, ColumnCount = 3 };
-            bottomPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 60));
-            bottomPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
-            bottomPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15));
-
-            lblStatus = new Label() { Text = "", Anchor = AnchorStyles.Left, AutoSize = true };
-            progressCopying = new ProgressBar() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Minimum = 0, Maximum = 100, Height = 14 };
-
-            var actionsFlow = new FlowLayoutPanel() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.RightToLeft, AutoSize = true };
             btnOpenSelected = new Button() { Text = "Open Selected", AutoSize = true };
             btnOpenSelected.Click += BtnOpenSelected_Click;
             btnCopyAll = new Button() { Text = "Copy Selected/All", AutoSize = true };
             btnCopyAll.Click += BtnCopyAll_Click;
 
-            actionsFlow.Controls.Add(btnOpenSelected);
+            progressCopying = new ProgressBar() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Height = 18 };
+
+            var bottom = new TableLayoutPanel() { Dock = DockStyle.Fill, ColumnCount = 4 };
+            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
+            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
+            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20));
+
+            lblStatus = new Label() { Text = "Ready", Anchor = AnchorStyles.Left, AutoSize = true };
+            bottom.Controls.Add(lblStatus, 0, 0);
+            bottom.Controls.Add(progressScanning, 1, 0);
+            bottom.Controls.Add(btnFind, 2, 0);
+
+            var actionsFlow = new FlowLayoutPanel() { FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Fill };
             actionsFlow.Controls.Add(btnCopyAll);
+            actionsFlow.Controls.Add(btnOpenSelected);
+            bottom.Controls.Add(actionsFlow, 3, 0);
 
-            bottomPanel.Controls.Add(lblStatus, 0, 0);
-            bottomPanel.Controls.Add(progressCopying, 1, 0);
-            bottomPanel.Controls.Add(actionsFlow, 2, 0);
+            main.Controls.Add(bottom, 0, 7);
+            main.SetColumnSpan(bottom, 3);
 
-            main.Controls.Add(bottomPanel, 0, 9);
-            main.SetColumnSpan(bottomPanel, 3);
-
-            // Enable drag on important textboxes
-            txtFolder.AllowDrop = true;
-            txtListFile.AllowDrop = true;
-            txtOutputFolder.AllowDrop = true;
-
-            txtFolder.DragEnter += Txt_DragEnter;
-            txtFolder.DragDrop += TxtFolder_DragDrop;
-            txtListFile.DragEnter += Txt_DragEnter;
-            txtListFile.DragDrop += TxtList_DragDrop;
-            txtOutputFolder.DragEnter += Txt_DragEnter;
-            txtOutputFolder.DragDrop += TxtOutput_DragDrop;
+            // Drag & drop
+            txtFolder.AllowDrop = true; txtListFile.AllowDrop = true; txtOutputFolder.AllowDrop = true;
+            txtFolder.DragEnter += Txt_DragEnter; txtFolder.DragDrop += TxtFolder_DragDrop;
+            txtListFile.DragEnter += Txt_DragEnter; txtListFile.DragDrop += TxtList_DragDrop;
+            txtOutputFolder.DragEnter += Txt_DragEnter; txtOutputFolder.DragDrop += TxtOutput_DragDrop;
 
             return main;
         }
 
         private Control BuildComparePanel()
         {
-            var main = new TableLayoutPanel()
-            {
-                Dock = DockStyle.Fill,
-                ColumnCount = 3,
-                RowCount = 6,
-                Padding = new Padding(8),
-                BackColor = Color.White
-            };
-
+            var main = new TableLayoutPanel() { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 7, Padding = new Padding(6) };
             main.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
             main.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
             main.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15));
 
-            for (int i = 0; i < 4; i++) main.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 34));
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
             main.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 32));
+            main.RowStyles.Add(new RowStyle(SizeType.Absolute, 72));
 
-            // LowRes folder
-            var lblLow = new Label() { Text = "Low-res photos (source):", AutoSize = true, Anchor = AnchorStyles.Left };
+            // Low-res
+            var lblLow = new Label() { Text = "Select or drag the Low Res photos Folder:", Anchor = AnchorStyles.Left };
             txtLowResFolder = new TextBox() { Anchor = AnchorStyles.Left | AnchorStyles.Right };
             btnBrowseLowRes = new Button() { Text = "Browse", AutoSize = true };
             btnBrowseLowRes.Click += BtnBrowseLowRes_Click;
+
             main.Controls.Add(lblLow, 0, 0);
             main.SetColumnSpan(lblLow, 3);
             main.Controls.Add(txtLowResFolder, 0, 1);
             main.SetColumnSpan(txtLowResFolder, 2);
             main.Controls.Add(btnBrowseLowRes, 2, 1);
 
-            // HiRes folder
-            var lblHi = new Label() { Text = "HiRes Photos folder (target, must be named 'HiRes Photos'):", AutoSize = true, Anchor = AnchorStyles.Left };
+            // Hi-res
+            var lblHi = new Label() { Text = "Select or drag the High Res photos Folder:", Anchor = AnchorStyles.Left };
             txtHiResFolder = new TextBox() { Anchor = AnchorStyles.Left | AnchorStyles.Right };
             btnBrowseHiRes = new Button() { Text = "Browse", AutoSize = true };
             btnBrowseHiRes.Click += BtnBrowseHiRes_Click;
+
             main.Controls.Add(lblHi, 0, 2);
             main.SetColumnSpan(lblHi, 3);
             main.Controls.Add(txtHiResFolder, 0, 3);
             main.SetColumnSpan(txtHiResFolder, 2);
             main.Controls.Add(btnBrowseHiRes, 2, 3);
 
-            // Compare button
-            btnCompare = new Button() { Text = "Compare and Find Replacements", AutoSize = true, Width = 260 };
-            btnCompare.Click += BtnCompare_Click;
-            main.Controls.Add(btnCompare, 2, 4);
+            // Output folder label
+            var lblOut = new Label() { Text = "Choose the Output folder:", Anchor = AnchorStyles.Left };
+            main.Controls.Add(lblOut, 0, 4);
+            main.SetColumnSpan(lblOut, 3);
+
+            txtCompareOutputFolder = new TextBox() { Anchor = AnchorStyles.Left | AnchorStyles.Right };
+            btnBrowseCompareOutput = new Button() { Text = "Browse", AutoSize = true };
+            btnBrowseCompareOutput.Click += BtnBrowseCompareOutput_Click;
+
+            main.Controls.Add(txtCompareOutputFolder, 0, 5);
+            main.SetColumnSpan(txtCompareOutputFolder, 2);
+            main.Controls.Add(btnBrowseCompareOutput, 2, 5);
+
+            // Radio buttons group for compare output
+            var radioPanel = new FlowLayoutPanel() { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, AutoSize = true };
+            rbCompCandid = new RadioButton() { Text = "Candid", AutoSize = true };
+            rbCompTraditional = new RadioButton() { Text = "Traditional", AutoSize = true };
+            rbCompOther = new RadioButton() { Text = "Other", AutoSize = true };
+            txtCompOtherName = new TextBox() { Width = 140, Enabled = false };
+            rbCompOther.CheckedChanged += (s, e) => txtCompOtherName.Enabled = rbCompOther.Checked;
+            rbCompCandid.Checked = true;
+            radioPanel.Controls.Add(rbCompCandid);
+            radioPanel.Controls.Add(rbCompTraditional);
+            radioPanel.Controls.Add(rbCompOther);
+            radioPanel.Controls.Add(txtCompOtherName);
+
+            main.Controls.Add(radioPanel, 0, 6);
+            main.SetColumnSpan(radioPanel, 3);
+
+            // Results + preview pair (left list, right two previews)
+            var resultsPanel = new TableLayoutPanel() { Dock = DockStyle.Fill, ColumnCount = 2 };
+            resultsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 55));
+            resultsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 45));
 
             lstCompareResults = new ListBox() { Dock = DockStyle.Fill };
-            main.Controls.Add(lstCompareResults, 0, 5);
-            main.SetColumnSpan(lstCompareResults, 3);
+            lstCompareResults.SelectedIndexChanged += LstCompareResults_SelectedIndexChanged;
 
-            lblCompareStatus = new Label() { Text = "", Anchor = AnchorStyles.Left, AutoSize = true };
-            main.Controls.Add(lblCompareStatus, 0, 6);
-            main.SetColumnSpan(lblCompareStatus, 3);
+            var previewPanel = new TableLayoutPanel() { Dock = DockStyle.Fill, RowCount = 2 };
+            previewPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+            previewPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
+            picCompareLow = new PictureBox() { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BorderStyle = BorderStyle.FixedSingle };
+            picCompareHi = new PictureBox() { Dock = DockStyle.Fill, SizeMode = PictureBoxSizeMode.Zoom, BorderStyle = BorderStyle.FixedSingle };
+            previewPanel.Controls.Add(picCompareLow, 0, 0);
+            previewPanel.Controls.Add(picCompareHi, 0, 1);
 
-            // Drag & drop
-            txtLowResFolder.AllowDrop = true;
-            txtHiResFolder.AllowDrop = true;
-            txtLowResFolder.DragEnter += Txt_DragEnter;
-            txtLowResFolder.DragDrop += TxtLowRes_DragDrop;
-            txtHiResFolder.DragEnter += Txt_DragEnter;
-            txtHiResFolder.DragDrop += TxtHiRes_DragDrop;
+            resultsPanel.Controls.Add(lstCompareResults, 0, 0);
+            resultsPanel.Controls.Add(previewPanel, 1, 0);
+
+            main.Controls.Add(resultsPanel, 0, 5);
+            main.SetColumnSpan(resultsPanel, 3);
+
+            // Bottom actions: compare, progress, copy
+            progressCompare = new ProgressBar() { Anchor = AnchorStyles.Left | AnchorStyles.Right, Height = 18 };
+            btnCompare = new Button() { Text = "Compare and Find Replacements", AutoSize = true };
+            btnCompare.Click += BtnCompare_Click;
+            btnCopyCompareSelected = new Button() { Text = "Copy Selected Replacements", AutoSize = true };
+            btnCopyCompareSelected.Click += BtnCopyCompareSelected_Click;
+
+            var bottom = new TableLayoutPanel() { Dock = DockStyle.Fill, ColumnCount = 4 };
+            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
+            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15));
+            bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 15));
+
+            var lblStatusComp = new Label() { Text = "Ready", Anchor = AnchorStyles.Left, AutoSize = true };
+            bottom.Controls.Add(lblStatusComp, 0, 0);
+            bottom.Controls.Add(progressCompare, 1, 0);
+            bottom.Controls.Add(btnCompare, 2, 0);
+            var flow = new FlowLayoutPanel() { FlowDirection = FlowDirection.RightToLeft, Dock = DockStyle.Fill };
+            flow.Controls.Add(btnCopyCompareSelected);
+            bottom.Controls.Add(flow, 3, 0);
+
+            main.Controls.Add(bottom, 0, 6);
+            main.SetColumnSpan(bottom, 3);
+
+            // Drag & drop for compare
+            txtLowResFolder.AllowDrop = true; txtHiResFolder.AllowDrop = true; txtCompareOutputFolder.AllowDrop = true;
+            txtLowResFolder.DragEnter += Txt_DragEnter; txtLowResFolder.DragDrop += TxtLowRes_DragDrop;
+            txtHiResFolder.DragEnter += Txt_DragEnter; txtHiResFolder.DragDrop += TxtHiRes_DragDrop;
+            txtCompareOutputFolder.DragEnter += Txt_DragEnter; txtCompareOutputFolder.DragDrop += TxtCompareOutput_DragDrop;
 
             return main;
         }
 
         // ------------------------------
-        // Drag & Drop handlers (form-level)
+        // Drag & Drop handlers
         // ------------------------------
         private void MainForm_DragEnter(object sender, DragEventArgs e)
         {
             Txt_DragEnter(sender, e);
         }
-
         private void MainForm_DragDrop(object sender, DragEventArgs e)
         {
-            // If a folder is dropped onto the form, fill the main folder textbox
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
                 if (paths.Length > 0)
                 {
                     var first = paths[0];
-                    if (Directory.Exists(first))
-                    {
-                        txtFolder.Text = first;
-                    }
-                    else if (File.Exists(first) && Path.GetExtension(first).Equals(".txt", StringComparison.OrdinalIgnoreCase))
-                    {
-                        txtListFile.Text = first;
-                    }
+                    if (Directory.Exists(first)) txtFolder.Text = first;
+                    else if (File.Exists(first) && Path.GetExtension(first).Equals(".txt", StringComparison.OrdinalIgnoreCase)) txtListFile.Text = first;
                 }
             }
         }
 
         private void Txt_DragEnter(object? sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy;
-            else e.Effect = DragDropEffects.None;
+            if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy; else e.Effect = DragDropEffects.None;
         }
 
         private void TxtFolder_DragDrop(object? sender, DragEventArgs e)
@@ -322,14 +388,11 @@ namespace PhotoFinder
             var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (paths.Length > 0 && Directory.Exists(paths[0])) txtFolder.Text = paths[0];
         }
-
         private void TxtList_DragDrop(object? sender, DragEventArgs e)
         {
             var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
-            if (paths.Length > 0 && File.Exists(paths[0]) && Path.GetExtension(paths[0]).Equals(".txt", StringComparison.OrdinalIgnoreCase))
-                txtListFile.Text = paths[0];
+            if (paths.Length > 0 && File.Exists(paths[0]) && Path.GetExtension(paths[0]).Equals(".txt", StringComparison.OrdinalIgnoreCase)) txtListFile.Text = paths[0];
         }
-
         private void TxtOutput_DragDrop(object? sender, DragEventArgs e)
         {
             var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
@@ -341,11 +404,15 @@ namespace PhotoFinder
             var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (paths.Length > 0 && Directory.Exists(paths[0])) txtLowResFolder.Text = paths[0];
         }
-
         private void TxtHiRes_DragDrop(object? sender, DragEventArgs e)
         {
             var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
             if (paths.Length > 0 && Directory.Exists(paths[0])) txtHiResFolder.Text = paths[0];
+        }
+        private void TxtCompareOutput_DragDrop(object? sender, DragEventArgs e)
+        {
+            var paths = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (paths.Length > 0 && Directory.Exists(paths[0])) txtCompareOutputFolder.Text = paths[0];
         }
 
         // ------------------------------
@@ -353,341 +420,281 @@ namespace PhotoFinder
         // ------------------------------
         private void BtnBrowseFolder_Click(object? sender, EventArgs e)
         {
-            using var dlg = new FolderBrowserDialog();
-            if (dlg.ShowDialog() == DialogResult.OK) txtFolder.Text = dlg.SelectedPath;
+            using var dlg = new FolderBrowserDialog(); if (dlg.ShowDialog() == DialogResult.OK) txtFolder.Text = dlg.SelectedPath;
         }
-
         private void BtnBrowseList_Click(object? sender, EventArgs e)
         {
-            using var dlg = new OpenFileDialog();
-            dlg.Filter = "Text files|*.txt|All files|*.*";
-            if (dlg.ShowDialog() == DialogResult.OK) txtListFile.Text = dlg.FileName;
+            using var dlg = new OpenFileDialog(); dlg.Filter = "Text files|*.txt|All files|*.*"; if (dlg.ShowDialog() == DialogResult.OK) txtListFile.Text = dlg.FileName;
         }
-
         private void BtnBrowseOutput_Click(object? sender, EventArgs e)
         {
-            using var dlg = new FolderBrowserDialog();
-            if (dlg.ShowDialog() == DialogResult.OK) txtOutputFolder.Text = dlg.SelectedPath;
+            using var dlg = new FolderBrowserDialog(); if (dlg.ShowDialog() == DialogResult.OK) txtOutputFolder.Text = dlg.SelectedPath;
         }
-
         private void BtnBrowseLowRes_Click(object? sender, EventArgs e)
         {
-            using var dlg = new FolderBrowserDialog();
-            if (dlg.ShowDialog() == DialogResult.OK) txtLowResFolder.Text = dlg.SelectedPath;
+            using var dlg = new FolderBrowserDialog(); if (dlg.ShowDialog() == DialogResult.OK) txtLowResFolder.Text = dlg.SelectedPath;
         }
-
         private void BtnBrowseHiRes_Click(object? sender, EventArgs e)
         {
-            using var dlg = new FolderBrowserDialog();
-            if (dlg.ShowDialog() == DialogResult.OK) txtHiResFolder.Text = dlg.SelectedPath;
+            using var dlg = new FolderBrowserDialog(); if (dlg.ShowDialog() == DialogResult.OK) txtHiResFolder.Text = dlg.SelectedPath;
+        }
+        private void BtnBrowseCompareOutput_Click(object? sender, EventArgs e)
+        {
+            using var dlg = new FolderBrowserDialog(); if (dlg.ShowDialog() == DialogResult.OK) txtCompareOutputFolder.Text = dlg.SelectedPath;
         }
 
         // ------------------------------
-        // Find logic (async & progress)
+        // Find logic
         // ------------------------------
         private async void BtnFind_Click(object? sender, EventArgs e)
         {
-            lstResults.Items.Clear();
-            lblStatus.Text = "";
-            progressScanning.Value = 0;
-            progressCopying.Value = 0;
-
-            var folder = txtFolder.Text?.Trim();
-            var listFile = txtListFile.Text?.Trim();
-            var output = txtOutputFolder.Text?.Trim();
-
-            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
-            {
-                MessageBox.Show("Please select a valid folder to search.", "Folder not found", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (string.IsNullOrEmpty(listFile) || !File.Exists(listFile))
-            {
-                MessageBox.Show("Please select a valid text file containing photo names.", "List file not found", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (string.IsNullOrEmpty(output) || !Directory.Exists(output))
-            {
-                var res = MessageBox.Show("No valid output folder chosen. Do you want to use Desktop as output?", "Output folder", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (res == DialogResult.Yes) output = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-                else return;
-            }
+            lstResults.Items.Clear(); picPreview.Image = null; lblStatus.Text = ""; progressScanning.Value = 0; progressCopying.Value = 0;
+            var folder = txtFolder.Text?.Trim(); var listFile = txtListFile.Text?.Trim(); var output = txtOutputFolder.Text?.Trim();
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) { MessageBox.Show("Please select a valid folder to search.", "Folder not found", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            if (string.IsNullOrEmpty(listFile) || !File.Exists(listFile)) { MessageBox.Show("Please select a valid text file containing photo names.", "List file not found", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            if (string.IsNullOrEmpty(output) || !Directory.Exists(output)) { var res = MessageBox.Show("No valid output folder chosen. Do you want to use Desktop as output?", "Output folder", MessageBoxButtons.YesNo, MessageBoxIcon.Question); if (res == DialogResult.Yes) output = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory); else return; }
 
             string content;
-            try
-            {
-                content = await Task.Run(() => File.ReadAllText(listFile));
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Could not read list file: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
+            try { content = await Task.Run(() => File.ReadAllText(listFile)); }
+            catch (Exception ex) { MessageBox.Show("Could not read list file: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); return; }
 
-            var tokens = content.Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
+            var tokens = content.Split(new[] { ',', ';', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim()).Where(s => !string.IsNullOrEmpty(s)).ToList();
+            if (tokens.Count == 0) { MessageBox.Show("No names found in the text file.", "No names", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
 
-            if (tokens.Count == 0)
-            {
-                MessageBox.Show("No names found in the text file.", "No names", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            // Supported image extensions
             var exts = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp" };
-
-            // Determine search option
-            var searchOption = chkIncludeSubfolders.Checked ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
-
+            var searchOption = SearchOption.AllDirectories; // include subfolders by default per your request
             lblStatus.Text = "Scanning files...";
-            var progress = new Progress<int>(p => {
-                progressScanning.Value = Math.Min(100, p);
-                lblStatus.Text = $"Scanning... {p}%";
-            });
+
+            var progress = new Progress<int>(p => { progressScanning.Value = Math.Min(100, p); lblStatus.Text = $"Scanning... {p}%"; });
 
             try
             {
-                // Gather all image files first (we report progress across this enumeration)
-                var allFiles = Directory.EnumerateFiles(folder, "*.*", searchOption)
-                    .Where(f => exts.Contains(Path.GetExtension(f).ToLowerInvariant()))
-                    .ToList();
-
+                var allFiles = Directory.EnumerateFiles(folder, "*.*", searchOption).Where(f => exts.Contains(Path.GetExtension(f).ToLowerInvariant())).ToList();
                 int total = allFiles.Count;
-                if (total == 0)
-                {
-                    MessageBox.Show("No image files found in the selected folder.", "No images", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    lblStatus.Text = "No images found.";
-                    progressScanning.Value = 0;
-                    return;
-                }
+                if (total == 0) { MessageBox.Show("No image files found in the selected folder.", "No images", MessageBoxButtons.OK, MessageBoxIcon.Information); lblStatus.Text = "No images found."; progressScanning.Value = 0; return; }
 
-                // Build lookup for quick searches: filename-without-ext -> file paths
                 var lookup = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
                 int idx = 0;
-                foreach (var f in allFiles)
-                {
-                    idx++;
-                    int pct = (int)(idx * 100.0 / total);
-                    (progress as IProgress<int>).Report(pct);
+                foreach (var f in allFiles) { idx++; int pct = (int)(idx * 100.0 / total); (progress as IProgress<int>).Report(pct); var key = Path.GetFileNameWithoutExtension(f); if (!lookup.TryGetValue(key, out var list)) { list = new List<string>(); lookup[key] = list; } list.Add(f); }
 
-                    var key = Path.GetFileNameWithoutExtension(f);
-                    if (!lookup.TryGetValue(key, out var list)) {
-                        list = new List<string>();
-                        lookup[key] = list;
-                    }
-                    list.Add(f);
-                }
-
-                // Search tokens and respect options
                 var matches = new List<string>();
                 foreach (var token in tokens)
                 {
-                    // Normalize token
-                    var t = token.Trim();
-                    if (string.IsNullOrEmpty(t)) continue;
-
-                    // If partial numeric-only matching is enabled and token looks numeric, we match if filename contains the numeric sequence
+                    var t = token.Trim(); if (string.IsNullOrEmpty(t)) continue;
                     bool tokenIsNumeric = Regex.IsMatch(t, @"^\d+$");
-
-                    if (tokenIsNumeric && chkPartialNumericOnly.Checked)
+                    if (tokenIsNumeric)
                     {
-                        // Find any file whose filename (without ext) contains the token
-                        foreach (var kv in lookup)
-                        {
-                            if (kv.Key.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0)
-                                matches.AddRange(kv.Value);
-                        }
-                    }
-                    else if (chkSearchAnywhere.Checked)
-                    {
-                        // Search anywhere in the filename (with extension stripped)
-                        foreach (var kv in lookup)
-                        {
-                            if (kv.Key.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0)
-                                matches.AddRange(kv.Value);
-                        }
+                        foreach (var kv in lookup) if (kv.Key.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0) matches.AddRange(kv.Value);
                     }
                     else
                     {
-                        // Exact filename match (without extension)
-                        if (lookup.TryGetValue(Path.GetFileNameWithoutExtension(t), out var list))
-                            matches.AddRange(list);
+                        foreach (var kv in lookup) if (kv.Key.IndexOf(t, StringComparison.OrdinalIgnoreCase) >= 0) matches.AddRange(kv.Value);
                     }
                 }
 
-                // Remove duplicates and add to UI
                 var distinct = matches.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-                foreach (var m in distinct)
-                {
-                    lstResults.Items.Add(m);
-                }
-
-                lblStatus.Text = $"Found {distinct.Count} matching files.";
-                progressScanning.Value = 100;
-
-                if (distinct.Count == 0)
-                {
-                    MessageBox.Show("No matching photos were found.", "No matches", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                }
+                foreach (var m in distinct) lstResults.Items.Add(m);
+                lblStatus.Text = $"Found {distinct.Count} matching files."; progressScanning.Value = 100;
+                if (distinct.Count == 0) MessageBox.Show("No matching photos were found.", "No matches", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error during search: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                lblStatus.Text = "Error";
-            }
+            catch (Exception ex) { MessageBox.Show("Error during search: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); lblStatus.Text = "Error"; }
         }
 
-        // ------------------------------
-        // Open and Copy actions with progress
-        // ------------------------------
-        private void BtnOpenSelected_Click(object? sender, EventArgs e)
+        private void LstResults_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            if (lstResults.SelectedItem == null)
-            {
-                MessageBox.Show("Please select an item from the results.", "No selection", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
-
-            var path = lstResults.SelectedItem.ToString();
             try
             {
-                var psi = new ProcessStartInfo(path!) { UseShellExecute = true };
-                Process.Start(psi);
+                picPreview.Image?.Dispose();
+                picPreview.Image = null;
+                if (lstResults.SelectedItem == null) return;
+                var path = lstResults.SelectedItem.ToString();
+                if (File.Exists(path))
+                {
+                    try { picPreview.Image = Image.FromFile(path); }
+                    catch { picPreview.Image = null; }
+                }
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Could not open file: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
+            catch { }
+        }
+
+        private void BtnOpenSelected_Click(object? sender, EventArgs e)
+        {
+            if (lstResults.SelectedItem == null) { MessageBox.Show("Please select an item from the results.", "No selection", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+            var path = lstResults.SelectedItem.ToString(); try { Process.Start(new ProcessStartInfo(path!) { UseShellExecute = true }); } catch (Exception ex) { MessageBox.Show("Could not open file: " + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error); }
         }
 
         private async void BtnCopyAll_Click(object? sender, EventArgs e)
         {
-            if (lstResults.Items.Count == 0)
-            {
-                MessageBox.Show("No matches to copy.", "Nothing to copy", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                return;
-            }
+            if (lstResults.Items.Count == 0) { MessageBox.Show("No matches to copy.", "Nothing to copy", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+            var output = txtOutputFolder.Text?.Trim(); if (string.IsNullOrEmpty(output) || !Directory.Exists(output)) { var res = MessageBox.Show("No valid output folder chosen. Do you want to use Desktop as output?", "Output folder", MessageBoxButtons.YesNo, MessageBoxIcon.Question); if (res == DialogResult.Yes) output = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory); else return; }
 
-            var output = txtOutputFolder.Text?.Trim();
-            if (string.IsNullOrEmpty(output) || !Directory.Exists(output))
-            {
-                var res = MessageBox.Show("No valid output folder chosen. Do you want to use Desktop as output?", "Output folder", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (res == DialogResult.Yes) output = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-                else return;
-            }
+            string subName;
+            if (rbCandid.Checked) subName = "Candid photos";
+            else if (rbTraditional.Checked) subName = "Traditional photos";
+            else { subName = string.IsNullOrWhiteSpace(txtOtherName.Text) ? "Other photos" : txtOtherName.Text.Trim(); }
 
-            // Create a timestamped subfolder inside chosen output for clarity
-            var outDir = Path.Combine(output, "PhotoFinder_Matches_" + DateTime.Now.ToString("yyyyMMdd_HHmmss"));
+            var outDir = Path.Combine(output, subName);
             Directory.CreateDirectory(outDir);
 
-            int total = lstResults.Items.Count;
-            int copied = 0;
-            progressCopying.Value = 0;
-
+            int total = lstResults.Items.Count; int copied = 0; progressCopying.Value = 0;
             for (int i = 0; i < total; i++)
             {
-                var src = lstResults.Items[i]?.ToString();
-                if (string.IsNullOrEmpty(src)) continue;
-                try
-                {
-                    var dest = Path.Combine(outDir, Path.GetFileName(src));
-                    await Task.Run(() => File.Copy(src!, dest, overwrite: true));
-                    copied++;
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine("Copy failed: " + ex.Message);
-                    // continue copying others
-                }
-                progressCopying.Value = (int)((i + 1) * 100.0 / total);
-                lblStatus.Text = $"Copying... {progressCopying.Value}% ({i + 1}/{total})";
-                Application.DoEvents();
+                var src = lstResults.Items[i]?.ToString(); if (string.IsNullOrEmpty(src)) continue;
+                try { var dest = Path.Combine(outDir, Path.GetFileName(src)); await Task.Run(() => File.Copy(src!, dest, overwrite: true)); copied++; }
+                catch (Exception ex) { Debug.WriteLine("Copy failed: " + ex.Message); }
+                progressCopying.Value = (int)((i + 1) * 100.0 / total); lblStatus.Text = $"Copying... {progressCopying.Value}% ({i + 1}/{total})"; Application.DoEvents();
             }
-
-            lblStatus.Text = $"Copied {copied} of {total} files to: {outDir}";
-            try { Process.Start(new ProcessStartInfo(outDir) { UseShellExecute = true }); } catch { }
-            MessageBox.Show($"Copied {copied} files to:\n{outDir}", "Copy complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            progressCopying.Value = 100;
+            lblStatus.Text = $"Copied {copied} of {total} files to: {outDir}"; try { Process.Start(new ProcessStartInfo(outDir) { UseShellExecute = true }); } catch { }
+            MessageBox.Show($"Copied {copied} files to:\n{outDir}", "Copy complete", MessageBoxButtons.OK, MessageBoxIcon.Information); progressCopying.Value = 100;
         }
 
         // ------------------------------
-        // Compare tab logic
+        // Compare logic
         // ------------------------------
         private async void BtnCompare_Click(object? sender, EventArgs e)
         {
-            lstCompareResults.Items.Clear();
-            lblCompareStatus.Text = "";
-            var low = txtLowResFolder.Text?.Trim();
-            var hi = txtHiResFolder.Text?.Trim();
+            lstCompareResults.Items.Clear(); picCompareHi.Image?.Dispose(); picCompareLow.Image?.Dispose(); picCompareHi.Image = null; picCompareLow.Image = null; progressCompare.Value = 0;
+            var low = txtLowResFolder.Text?.Trim(); var hi = txtHiResFolder.Text?.Trim(); var output = txtCompareOutputFolder.Text?.Trim();
+            if (string.IsNullOrEmpty(low) || !Directory.Exists(low)) { MessageBox.Show("Please select a valid Low-res folder.", "Low-res folder missing", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            if (string.IsNullOrEmpty(hi) || !Directory.Exists(hi)) { MessageBox.Show("Please select a valid High-res folder.", "High-res folder missing", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+            if (string.IsNullOrEmpty(output) || !Directory.Exists(output)) { var res = MessageBox.Show("No valid output folder chosen. Do you want to use Desktop as output?", "Output folder", MessageBoxButtons.YesNo, MessageBoxIcon.Question); if (res == DialogResult.Yes) output = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory); else return; }
 
-            if (string.IsNullOrEmpty(low) || !Directory.Exists(low))
-            {
-                MessageBox.Show("Please select a valid Low-res folder.", "Low-res folder missing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-            if (string.IsNullOrEmpty(hi) || !Directory.Exists(hi))
-            {
-                MessageBox.Show("Please select a valid HiRes Photos folder.", "Hi-res folder missing", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            // Enforce the HiRes folder name, warn the user (but allow)
-            if (!string.Equals(Path.GetFileName(hi), "HiRes Photos", StringComparison.OrdinalIgnoreCase))
-            {
-                var r = MessageBox.Show("The selected Hi-res folder is not named 'HiRes Photos'. Continue anyway?", "Folder name mismatch", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (r == DialogResult.No) return;
-            }
-
-            lblCompareStatus.Text = "Comparing...";
-            await Task.Run(() => CompareByNameAndResolution(low, hi));
-            lblCompareStatus.Text = "Compare complete.";
+            lblStatus.Text = "Comparing...";
+            var results = await Task.Run(() => CompareByNameAndResolution(low, hi));
+            // results are tuples of (lowPath, hiPath)
+            foreach (var r in results) lstCompareResults.Items.Add(r.low + " -> " + r.hi);
+            progressCompare.Value = 100; lblStatus.Text = $"Found {results.Count} replacement candidates.";
+            if (results.Count == 0) lstCompareResults.Items.Add("No replacements found.");
         }
 
-        private void CompareByNameAndResolution(string lowFolder, string hiFolder)
+        private List<(string low, string hi)> CompareByNameAndResolution(string lowFolder, string hiFolder)
         {
-            // Collect low-res files
-            var exts = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".webp" };
-            var lowFiles = Directory.EnumerateFiles(lowFolder, "*.*", SearchOption.AllDirectories)
-                .Where(f => exts.Contains(Path.GetExtension(f).ToLowerInvariant()))
-                .ToList();
-
-            var hiFiles = Directory.EnumerateFiles(hiFolder, "*.*", SearchOption.AllDirectories)
-                .Where(f => exts.Contains(Path.GetExtension(f).ToLowerInvariant()))
-                .Select(f => new { Path = f, Name = Path.GetFileNameWithoutExtension(f) })
-                .ToDictionary(x => x.Name, x => x.Path, StringComparer.OrdinalIgnoreCase);
-
-            var results = new List<string>();
-
-            foreach (var lf in lowFiles)
+            var results = new List<(string low, string hi)>();
+            try
             {
-                var lowName = Path.GetFileNameWithoutExtension(lf);
-                if (hiFiles.TryGetValue(lowName, out var candidateHi))
+                var lowFiles = Directory.EnumerateFiles(lowFolder, "*.*", SearchOption.AllDirectories).ToList();
+                var hiFiles = Directory.EnumerateFiles(hiFolder, "*.*", SearchOption.AllDirectories).ToList();
+
+                // Build hi lookup by filename without extension
+                var hiLookup = hiFiles.Select(f => new { Path = f, Name = Path.GetFileNameWithoutExtension(f) })
+                    .GroupBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key, g => g.Select(x => x.Path).ToList(), StringComparer.OrdinalIgnoreCase);
+
+                int total = lowFiles.Count; int idx = 0;
+                foreach (var lf in lowFiles)
                 {
-                    // Compare resolution: if hi image is larger in pixels, consider it a replacement candidate
-                    try
+                    idx++; int pct = (int)(idx * 100.0 / Math.Max(1, total));
+                    var lowName = Path.GetFileNameWithoutExtension(lf);
+                    if (hiLookup.TryGetValue(lowName, out var candidates))
                     {
-                        using var imgLow = Image.FromFile(lf);
-                        using var imgHi = Image.FromFile(candidateHi);
-                        if (imgHi.Width >= imgLow.Width && imgHi.Height >= imgLow.Height)
+                        foreach (var candidate in candidates)
                         {
-                            results.Add($"{Path.GetFileName(lf)}  ->  {Path.GetFileName(candidateHi)}");
+                            // Try to compare resolution if image, else accept name match
+                            try
+                            {
+                                using var imgLow = Image.FromFile(lf);
+                                using var imgHi = Image.FromFile(candidate);
+                                if (imgHi.Width >= imgLow.Width && imgHi.Height >= imgLow.Height) results.Add((lf, candidate));
+                            }
+                            catch
+                            {
+                                results.Add((lf, candidate));
+                            }
                         }
-                    }
-                    catch
-                    {
-                        // if image load fails, fallback to name match only
-                        results.Add($"{Path.GetFileName(lf)}  ->  {Path.GetFileName(candidateHi)}");
                     }
                 }
             }
+            catch (Exception ex) { Debug.WriteLine("Compare error: " + ex.Message); }
+            return results;
+        }
 
-            // Post results to UI thread
-            BeginInvoke(new Action(() => {
-                foreach (var r in results) lstCompareResults.Items.Add(r);
-                if (results.Count == 0) lstCompareResults.Items.Add("No replacements found.");
-            }));
+        private void LstCompareResults_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            picCompareHi.Image?.Dispose(); picCompareLow.Image?.Dispose(); picCompareHi.Image = null; picCompareLow.Image = null;
+            if (lstCompareResults.SelectedItem == null) return;
+            var text = lstCompareResults.SelectedItem.ToString();
+            if (string.IsNullOrEmpty(text) || !text.Contains("->")) return;
+            var parts = text.Split(new[] { '>', '-' }, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
+            if (parts.Length >= 2)
+            {
+                var low = parts[0];
+                var hi = parts[1];
+                if (File.Exists(low)) { try { picCompareLow.Image = Image.FromFile(low); } catch { picCompareLow.Image = null; } }
+                if (File.Exists(hi)) { try { picCompareHi.Image = Image.FromFile(hi); } catch { picCompareHi.Image = null; } }
+            }
+        }
+
+        private async void BtnCopyCompareSelected_Click(object? sender, EventArgs e)
+        {
+            if (lstCompareResults.Items.Count == 0) { MessageBox.Show("No replacements to copy.", "Nothing to copy", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+            var output = txtCompareOutputFolder.Text?.Trim(); if (string.IsNullOrEmpty(output) || !Directory.Exists(output)) { var res = MessageBox.Show("No valid output folder chosen. Do you want to use Desktop as output?", "Output folder", MessageBoxButtons.YesNo, MessageBoxIcon.Question); if (res == DialogResult.Yes) output = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory); else return; }
+
+            string subName;
+            if (rbCompCandid.Checked) subName = "Candid photos";
+            else if (rbCompTraditional.Checked) subName = "Traditional photos";
+            else { subName = string.IsNullOrWhiteSpace(txtCompOtherName.Text) ? "Other photos" : txtCompOtherName.Text.Trim(); }
+
+            var outDir = Path.Combine(output, subName);
+            Directory.CreateDirectory(outDir);
+
+            // Collect hi paths from selected items
+            var hiPaths = new List<string>();
+            foreach (var item in lstCompareResults.Items)
+            {
+                var s = item.ToString(); if (string.IsNullOrEmpty(s) || !s.Contains("->")) continue;
+                var parts = s.Split(new[] { '>', '-' }, StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray();
+                if (parts.Length >= 2)
+                {
+                    var hi = parts[1]; if (File.Exists(hi)) hiPaths.Add(hi);
+                }
+            }
+
+            if (hiPaths.Count == 0) { MessageBox.Show("No hi-res files found to copy.", "Nothing to copy", MessageBoxButtons.OK, MessageBoxIcon.Information); return; }
+
+            int total = hiPaths.Count; int copied = 0; progressCompare.Value = 0;
+            for (int i = 0; i < total; i++)
+            {
+                var src = hiPaths[i]; try { var dest = Path.Combine(outDir, Path.GetFileName(src)); await Task.Run(() => File.Copy(src, dest, overwrite: true)); copied++; } catch (Exception ex) { Debug.WriteLine("Copy failed: " + ex.Message); }
+                progressCompare.Value = (int)((i + 1) * 100.0 / total); lblStatus.Text = $"Copying... {progressCompare.Value}% ({i + 1}/{total})"; Application.DoEvents();
+            }
+
+            lblStatus.Text = $"Copied {copied} of {total} files to: {outDir}"; try { Process.Start(new ProcessStartInfo(outDir) { UseShellExecute = true }); } catch { }
+            MessageBox.Show($"Copied {copied} files to:\n{outDir}", "Copy complete", MessageBoxButtons.OK, MessageBoxIcon.Information); progressCompare.Value = 100;
+        }
+
+        // ------------------------------
+        // Theme toggle
+        // ------------------------------
+        private void BtnThemeToggle_Click(object? sender, EventArgs e)
+        {
+            darkTheme = !darkTheme;
+            ApplyTheme();
+        }
+
+        private void ApplyTheme()
+        {
+            if (darkTheme)
+            {
+                BackColor = Color.FromArgb(34, 34, 34);
+                ForeColor = Color.WhiteSmoke;
+                btnThemeToggle.Text = "Light Theme";
+            }
+            else
+            {
+                BackColor = SystemColors.Control;
+                ForeColor = SystemColors.ControlText;
+                btnThemeToggle.Text = "Dark Theme";
+            }
+
+            // Walk controls to apply simple colors where applicable
+            foreach (Control c in Controls) ApplyColorsRecursive(c);
+        }
+
+        private void ApplyColorsRecursive(Control c)
+        {
+            c.BackColor = darkTheme ? Color.FromArgb(45, 45, 48) : SystemColors.Window;
+            c.ForeColor = darkTheme ? Color.WhiteSmoke : SystemColors.ControlText;
+            foreach (Control child in c.Controls) ApplyColorsRecursive(child);
         }
     }
 }
